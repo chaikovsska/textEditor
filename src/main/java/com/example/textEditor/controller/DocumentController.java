@@ -2,11 +2,10 @@ package com.example.textEditor.controller;
 
 import com.example.textEditor.model.Document;
 import com.example.textEditor.service.DocumentService;
+import com.example.textEditor.strategy.SyntaxHighlightService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-
-import java.sql.Timestamp;
 import java.util.List;
 
 @RestController
@@ -14,9 +13,11 @@ import java.util.List;
 public class DocumentController {
 
     private final DocumentService documentService;
+    private final SyntaxHighlightService syntaxHighlightService;
 
-    public DocumentController(DocumentService documentService) {
+    public DocumentController(DocumentService documentService, SyntaxHighlightService syntaxHighlightService) {
         this.documentService = documentService;
+        this.syntaxHighlightService = syntaxHighlightService;
     }
 
     @PostMapping
@@ -67,4 +68,12 @@ public class DocumentController {
             return ResponseEntity.internalServerError().build();
         }
     }
+
+    @PostMapping("/highlight")
+    public ResponseEntity<String> highlight(@RequestBody Document document) {
+        String highlighted = syntaxHighlightService.highlight(document);
+        return ResponseEntity.ok(highlighted);
+    }
 }
+
+

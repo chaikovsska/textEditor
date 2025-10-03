@@ -4,6 +4,7 @@ import com.example.textEditor.model.Document;
 import com.example.textEditor.repository.DocumentRepository;
 import com.example.textEditor.service.DocumentService;
 import org.springframework.stereotype.Service;
+import com.example.textEditor.strategy.SyntaxHighlightService;
 
 import java.sql.Timestamp;
 import java.util.List;
@@ -12,9 +13,12 @@ import java.util.List;
 public class DocumentServiceImpl implements DocumentService {
 
     private final DocumentRepository documentRepository;
+    private final SyntaxHighlightService syntaxHighlightService;
 
-    public DocumentServiceImpl(DocumentRepository documentRepository) {
+    public DocumentServiceImpl(DocumentRepository documentRepository,
+                               SyntaxHighlightService syntaxHighlightService) {
         this.documentRepository = documentRepository;
+        this.syntaxHighlightService = syntaxHighlightService;
     }
 
     @Override
@@ -35,13 +39,18 @@ public class DocumentServiceImpl implements DocumentService {
             document.setFilename(filename);
         }
 
+        String highlighted = syntaxHighlightService.highlight(document);
+        document.setHighlightedContent(highlighted);
+
         return documentRepository.save(document);
+
     }
 
     @Override
     public Document getById(int id) {
         return documentRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Document not found"));
+
     }
 
     @Override
@@ -53,7 +62,10 @@ public class DocumentServiceImpl implements DocumentService {
     public Document update(Document document) {
         document.setUpdatedAt(new Timestamp(System.currentTimeMillis()));
 
-        detectExtensionByContent(document); // 🔥 заміна
+        detectExtensionByContent(document);
+
+        String highlighted = syntaxHighlightService.highlight(document);
+        document.setHighlightedContent(highlighted);
 
         return documentRepository.save(document);
     }

@@ -18,6 +18,9 @@ public class Document {
     @Lob
     private String content;
 
+    @Lob
+    private String highlightedContent;
+
     @Column(name = "created_at")
     private Timestamp createdAt;
 
@@ -26,7 +29,6 @@ public class Document {
 
     private String category;
     private String tags;
-
 
     @OneToMany(mappedBy = "document", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Bookmark> bookmarks;
@@ -40,6 +42,7 @@ public class Document {
     @OneToMany(mappedBy = "document", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Macros> macros;
 
+    // --- getters & setters ---
 
     public int getId() { return id; }
     public void setId(int id) { this.id = id; }
@@ -52,6 +55,9 @@ public class Document {
 
     public String getContent() { return content; }
     public void setContent(String content) { this.content = content; }
+
+    public String getHighlightedContent() { return highlightedContent; }
+    public void setHighlightedContent(String highlightedContent) { this.highlightedContent = highlightedContent; }
 
     public Timestamp getCreatedAt() { return createdAt; }
     public void setCreatedAt(Timestamp createdAt) { this.createdAt = createdAt; }
