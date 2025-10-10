@@ -1,57 +1,82 @@
 package com.example.textEditor.controller;
 
+import com.example.textEditor.command.*;
 import com.example.textEditor.model.Document;
 import com.example.textEditor.service.DocumentService;
 import com.example.textEditor.strategy.SyntaxHighlightService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/documents")
+@RequestMapping("/file")
 public class DocumentController {
 
     private final DocumentService documentService;
     private final SyntaxHighlightService syntaxHighlightService;
+    private final CommandInvoker invoker = new CommandInvoker();
 
     public DocumentController(DocumentService documentService, SyntaxHighlightService syntaxHighlightService) {
         this.documentService = documentService;
         this.syntaxHighlightService = syntaxHighlightService;
     }
 
-    @PostMapping
-    public ResponseEntity<Document> create(@RequestBody Document document) {
-        return ResponseEntity.ok(documentService.create(document));
+    @PostMapping("/save")
+    public ResponseEntity<Document> save(@RequestBody Document document) {
+        try {
+            Document saved = documentService.create(document);
+
+            Command command = new SaveDocumentCommand(documentService, saved);
+            invoker.executeCommand(command);
+
+            return ResponseEntity.ok(saved);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.internalServerError().build();
+        }
     }
 
-    @GetMapping("/{id}")
-    public ResponseEntity<Document> getById(@PathVariable int id) {
-        return ResponseEntity.ok(documentService.getById(id));
+    @GetMapping("/open/{id}")
+    public ResponseEntity<Document> open(@PathVariable int id) {
+        try {
+            Command command = new OpenDocumentCommand(documentService, id);
+            invoker.executeCommand(command);
+
+            Document doc = documentService.getById(id);
+            return ResponseEntity.ok(doc);
+        } catch (Exception e) {
+            Document newDoc = new Document();
+            newDoc.setFilename("newfile.txt");
+            newDoc.setContent("");
+            Document saved = documentService.create(newDoc);
+
+            Command command = new SaveDocumentCommand(documentService, saved);
+            invoker.executeCommand(command);
+
+            return ResponseEntity.ok(saved);
+        }
     }
 
-    @GetMapping
-    public ResponseEntity<List<Document>> getAll() {
-        return ResponseEntity.ok(documentService.getAll());
-    }
+    @PutMapping("/edit/{id}")
+    public ResponseEntity<Document> edit(@PathVariable int id, @RequestBody String content) {
+        try {
+            Document doc = documentService.getById(id);
 
-    @PutMapping("/{id}")
-    public ResponseEntity<Document> update(@PathVariable int id, @RequestBody Document document) {
-        document.setId(id);
-        return ResponseEntity.ok(documentService.update(document));
-    }
+            Command command = new EditDocumentCommand(documentService, doc, content);
+            invoker.executeCommand(command);
 
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Void> delete(@PathVariable int id) {
-        documentService.delete(id);
-        return ResponseEntity.noContent().build();
+            return ResponseEntity.ok(doc);
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().build();
+        }
     }
 
     @PostMapping("/upload")
     public ResponseEntity<Document> upload(@RequestParam("file") MultipartFile file) {
         try {
             String content = new String(file.getBytes(), java.nio.charset.StandardCharsets.UTF_8);
-
             String filename = file.getOriginalFilename();
             if (filename == null || filename.isBlank()) {
                 return ResponseEntity.badRequest().build();
@@ -63,8 +88,12 @@ public class DocumentController {
 
             Document saved = documentService.create(doc);
 
+            Command command = new UploadDocumentCommand(documentService, saved);
+            invoker.executeCommand(command);
+
             return ResponseEntity.ok(saved);
         } catch (Exception e) {
+            e.printStackTrace();
             return ResponseEntity.internalServerError().build();
         }
     }
@@ -73,6 +102,11 @@ public class DocumentController {
     public ResponseEntity<String> highlight(@RequestBody Document document) {
         String highlighted = syntaxHighlightService.highlight(document);
         return ResponseEntity.ok(highlighted);
+    }
+
+    @GetMapping
+    public ResponseEntity<List<Document>> getAll() {
+        return ResponseEntity.ok(documentService.getAll());
     }
 }
 
