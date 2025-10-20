@@ -1,53 +1,37 @@
 package com.example.textEditor.controller;
 
-import com.example.textEditor.model.Hint;
-import com.example.textEditor.model.Document;
-import com.example.textEditor.service.HintService;
-import com.example.textEditor.service.DocumentService;
+import com.example.textEditor.service.impl.HintGenerator;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @RestController
-@RequestMapping("/hints")
+@RequestMapping("/file")
 public class HintController {
 
-    private final HintService hintService;
-    private final DocumentService documentService;
+    private final HintGenerator hintGenerator;
 
-    public HintController(HintService hintService, DocumentService documentService) {
-        this.hintService = hintService;
-        this.documentService = documentService;
+    public HintController(HintGenerator hintGenerator) {
+        this.hintGenerator = hintGenerator;
     }
 
-    @PostMapping
-    public Hint create(@RequestBody Hint hint) {
-        Document doc = documentService.getById(hint.getDocument().getId());
-        hint.setDocument(doc);
-        return hintService.create(hint);
+    @PostMapping("/hints")
+    public HintsResponse getHints(@RequestBody TextRequest request) {
+        List<String> hints = hintGenerator.generateHints(request.getText());
+        return new HintsResponse(hints);
     }
 
-    @GetMapping("/{id}")
-    public Hint getById(@PathVariable int id) {
-        return hintService.getById(id);
+    public static class TextRequest {
+        private String text;
+        public String getText() { return text; }
+        public void setText(String text) { this.text = text; }
     }
 
-    @GetMapping("/by-document/{documentId}")
-    public List<Hint> getByDocument(@PathVariable int documentId) {
-        Document doc = documentService.getById(documentId);
-        return hintService.getByDocument(doc);
-    }
-
-    @PutMapping("/{id}")
-    public Hint update(@PathVariable int id, @RequestBody Hint hint) {
-        hint.setId(id);
-        Document doc = documentService.getById(hint.getDocument().getId());
-        hint.setDocument(doc);
-        return hintService.update(hint);
-    }
-
-    @DeleteMapping("/{id}")
-    public void delete(@PathVariable int id) {
-        hintService.delete(id);
+    public static class HintsResponse {
+        private List<String> hints;
+        public HintsResponse(List<String> hints) { this.hints = hints; }
+        public List<String> getHints() { return hints; }
     }
 }
+
+
