@@ -36,8 +36,6 @@ public class Document {
     @OneToMany(mappedBy = "document", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Snippet> snippets;
 
-    @OneToMany(mappedBy = "document", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<Macros> macros;
 
     // --- getters & setters ---
 
@@ -74,7 +72,4 @@ public class Document {
     public List<Snippet> getSnippets() { return snippets; }
     public void setSnippets(List<Snippet> snippets) { this.snippets = snippets; }
 
-
-    public List<Macros> getMacros() { return macros; }
-    public void setMacros(List<Macros> macros) { this.macros = macros; }
 }
