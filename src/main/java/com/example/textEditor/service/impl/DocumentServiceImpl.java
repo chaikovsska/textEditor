@@ -1,5 +1,6 @@
 package com.example.textEditor.service.impl;
 
+import com.example.textEditor.flyweight.FlyweightService;
 import com.example.textEditor.model.Document;
 import com.example.textEditor.repository.DocumentRepository;
 import com.example.textEditor.service.DocumentService;
@@ -14,11 +15,15 @@ public class DocumentServiceImpl implements DocumentService {
 
     private final DocumentRepository documentRepository;
     private final SyntaxHighlightService syntaxHighlightService;
+    private final FlyweightService flyweightService;
 
-    public DocumentServiceImpl(DocumentRepository documentRepository,
-                               SyntaxHighlightService syntaxHighlightService) {
+    public DocumentServiceImpl(
+            DocumentRepository documentRepository,
+            SyntaxHighlightService syntaxHighlightService,
+            FlyweightService flyweightService) {
         this.documentRepository = documentRepository;
         this.syntaxHighlightService = syntaxHighlightService;
+        this.flyweightService = flyweightService;
     }
 
     @Override
@@ -27,6 +32,12 @@ public class DocumentServiceImpl implements DocumentService {
         document.setCreatedAt(now);
         document.setUpdatedAt(now);
 
+        // 1️⃣ Обробляємо вміст через FlyweightService
+        if (document.getContent() != null && !document.getContent().isEmpty()) {
+            flyweightService.processText(document.getContent());
+        }
+
+        // 2️⃣ Визначаємо розширення та ім’я файлу
         if (document.getExtension() == null || document.getExtension().isBlank()) {
             detectExtensionByContent(document);
         } else {
@@ -39,11 +50,12 @@ public class DocumentServiceImpl implements DocumentService {
             document.setFilename(filename);
         }
 
+        // 3️⃣ Підсвічуємо синтаксис
         String highlighted = syntaxHighlightService.highlight(document);
         document.setHighlightedContent(highlighted);
 
+        // 4️⃣ Зберігаємо у БД
         return documentRepository.save(document);
-
     }
 
     @Override
@@ -62,18 +74,20 @@ public class DocumentServiceImpl implements DocumentService {
     public Document update(Document document) {
         document.setUpdatedAt(new Timestamp(System.currentTimeMillis()));
 
-        detectExtensionByContent(document);
+        // 1️⃣ Обробка через FlyweightService (оновлюємо пул символів)
+        if (document.getContent() != null && !document.getContent().isEmpty()) {
+            flyweightService.processText(document.getContent());
+        }
 
+        // 2️⃣ Визначаємо тип файлу та підсвічуємо синтаксис
+        detectExtensionByContent(document);
         String highlighted = syntaxHighlightService.highlight(document);
         document.setHighlightedContent(highlighted);
 
+        // 3️⃣ Зберігаємо у БД
         return documentRepository.save(document);
     }
 
-    @Override
-    public void delete(int id) {
-        documentRepository.deleteById(id);
-    }
 
     private void detectExtensionByContent(Document document) {
         String content = document.getContent() == null ? "" : document.getContent();
@@ -136,5 +150,9 @@ public class DocumentServiceImpl implements DocumentService {
         }
 
         return "txt";
+    }
+
+    public int getFlyweightCount() {
+        return flyweightService.getUniqueSymbolCount();
     }
 }

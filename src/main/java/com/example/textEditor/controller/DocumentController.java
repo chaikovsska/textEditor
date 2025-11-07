@@ -8,7 +8,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/file")
@@ -24,14 +26,20 @@ public class DocumentController {
     }
 
     @PostMapping("/save")
-    public ResponseEntity<Document> save(@RequestBody Document document) {
+    public ResponseEntity<Map<String, Object>> save(@RequestBody Document document) {
         try {
             Document saved = documentService.create(document);
-
             Command command = new SaveDocumentCommand(documentService, saved);
             invoker.executeCommand(command);
 
-            return ResponseEntity.ok(saved);
+            // 🧩 Flyweight — кількість унікальних символів
+            int uniqueCount = documentService.getFlyweightCount();
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("document", saved);
+            response.put("uniqueSymbols", uniqueCount);
+
+            return ResponseEntity.ok(response);
         } catch (Exception e) {
             e.printStackTrace();
             return ResponseEntity.internalServerError().build();
@@ -60,21 +68,27 @@ public class DocumentController {
     }
 
     @PutMapping("/edit/{id}")
-    public ResponseEntity<Document> edit(@PathVariable int id, @RequestBody String content) {
+    public ResponseEntity<Map<String, Object>> edit(@PathVariable int id, @RequestBody String content) {
         try {
             Document doc = documentService.getById(id);
 
             Command command = new EditDocumentCommand(documentService, doc, content);
             invoker.executeCommand(command);
 
-            return ResponseEntity.ok(doc);
+            int uniqueCount = documentService.getFlyweightCount();
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("document", doc);
+            response.put("uniqueSymbols", uniqueCount);
+
+            return ResponseEntity.ok(response);
         } catch (Exception e) {
             return ResponseEntity.internalServerError().build();
         }
     }
 
     @PostMapping("/upload")
-    public ResponseEntity<Document> upload(@RequestParam("file") MultipartFile file) {
+    public ResponseEntity<Map<String, Object>> upload(@RequestParam("file") MultipartFile file) {
         try {
             String content = new String(file.getBytes(), java.nio.charset.StandardCharsets.UTF_8);
             String filename = file.getOriginalFilename();
@@ -91,12 +105,27 @@ public class DocumentController {
             Command command = new UploadDocumentCommand(documentService, saved);
             invoker.executeCommand(command);
 
-            return ResponseEntity.ok(saved);
+            int uniqueCount = documentService.getFlyweightCount();
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("document", saved);
+            response.put("uniqueSymbols", uniqueCount);
+
+            return ResponseEntity.ok(response);
         } catch (Exception e) {
             e.printStackTrace();
             return ResponseEntity.internalServerError().build();
         }
     }
+
+    // 🧩 Окремий ендпоінт для отримання статистики Flyweight
+    @GetMapping("/flyweight/stats")
+    public ResponseEntity<Map<String, Object>> getFlyweightStats() {
+        Map<String, Object> stats = new HashMap<>();
+        stats.put("uniqueSymbols", documentService.getFlyweightCount());
+        return ResponseEntity.ok(stats);
+    }
+
 
     @PostMapping("/highlight")
     public ResponseEntity<String> highlight(@RequestBody Document document) {

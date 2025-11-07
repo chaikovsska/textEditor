@@ -8,6 +8,6 @@ public interface DocumentService {
     Document getById(int id);
     List<Document> getAll();
     Document update(Document document);
-    void delete(int id);
+    int getFlyweightCount();
 }
 
