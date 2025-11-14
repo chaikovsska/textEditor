@@ -4,8 +4,9 @@ import com.example.textEditor.flyweight.FlyweightService;
 import com.example.textEditor.model.Document;
 import com.example.textEditor.repository.DocumentRepository;
 import com.example.textEditor.service.DocumentService;
-import org.springframework.stereotype.Service;
+import com.example.textEditor.service.EncryptionService;
 import com.example.textEditor.strategy.SyntaxHighlightService;
+import org.springframework.stereotype.Service;
 
 import java.sql.Timestamp;
 import java.util.List;
@@ -16,14 +17,18 @@ public class DocumentServiceImpl implements DocumentService {
     private final DocumentRepository documentRepository;
     private final SyntaxHighlightService syntaxHighlightService;
     private final FlyweightService flyweightService;
+    private final EncryptionService encryptionService;
 
     public DocumentServiceImpl(
             DocumentRepository documentRepository,
             SyntaxHighlightService syntaxHighlightService,
-            FlyweightService flyweightService) {
+            FlyweightService flyweightService,
+            EncryptionService encryptionService
+    ) {
         this.documentRepository = documentRepository;
         this.syntaxHighlightService = syntaxHighlightService;
         this.flyweightService = flyweightService;
+        this.encryptionService = encryptionService;
     }
 
     @Override
@@ -32,62 +37,73 @@ public class DocumentServiceImpl implements DocumentService {
         document.setCreatedAt(now);
         document.setUpdatedAt(now);
 
-        // 1️⃣ Обробляємо вміст через FlyweightService
-        if (document.getContent() != null && !document.getContent().isEmpty()) {
-            flyweightService.processText(document.getContent());
+        String plainText = document.getContent();
+
+        if (plainText != null && !plainText.isEmpty()) {
+            flyweightService.processText(plainText);
         }
 
-        // 2️⃣ Визначаємо розширення та ім’я файлу
-        if (document.getExtension() == null || document.getExtension().isBlank()) {
-            detectExtensionByContent(document);
-        } else {
-            String filename = document.getFilename();
-            if (filename == null || filename.isBlank()) {
-                filename = "newfile." + document.getExtension();
-            } else if (!filename.contains(".")) {
-                filename = filename + "." + document.getExtension();
-            }
-            document.setFilename(filename);
-        }
+        detectExtensionByContent(document);
 
-        // 3️⃣ Підсвічуємо синтаксис
         String highlighted = syntaxHighlightService.highlight(document);
         document.setHighlightedContent(highlighted);
 
-        // 4️⃣ Зберігаємо у БД
+        if (plainText != null) {
+            String encrypted = encryptionService.encrypt(plainText);
+            document.setContent(encrypted);
+        }
+
         return documentRepository.save(document);
     }
 
     @Override
     public Document getById(int id) {
-        return documentRepository.findById(id)
+        Document doc = documentRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Document not found"));
 
+        String decrypted = encryptionService.decrypt(doc.getContent());
+        doc.setContent(decrypted);
+
+        String highlighted = syntaxHighlightService.highlight(doc);
+        doc.setHighlightedContent(highlighted);
+
+        return doc;
     }
 
     @Override
     public List<Document> getAll() {
-        return documentRepository.findAll();
+        List<Document> docs = documentRepository.findAll();
+
+        for (Document doc : docs) {
+            try {
+                String decrypted = encryptionService.decrypt(doc.getContent());
+                doc.setContent(decrypted);
+            } catch (Exception ignored) {
+            }
+        }
+        return docs;
     }
 
     @Override
     public Document update(Document document) {
         document.setUpdatedAt(new Timestamp(System.currentTimeMillis()));
 
-        // 1️⃣ Обробка через FlyweightService (оновлюємо пул символів)
-        if (document.getContent() != null && !document.getContent().isEmpty()) {
-            flyweightService.processText(document.getContent());
+        String plainText = document.getContent();
+
+        if (plainText != null && !plainText.isEmpty()) {
+            flyweightService.processText(plainText);
         }
 
-        // 2️⃣ Визначаємо тип файлу та підсвічуємо синтаксис
         detectExtensionByContent(document);
+
         String highlighted = syntaxHighlightService.highlight(document);
         document.setHighlightedContent(highlighted);
 
-        // 3️⃣ Зберігаємо у БД
+        String encrypted = encryptionService.encrypt(plainText);
+        document.setContent(encrypted);
+
         return documentRepository.save(document);
     }
-
 
     private void detectExtensionByContent(Document document) {
         String content = document.getContent() == null ? "" : document.getContent();
@@ -106,7 +122,6 @@ public class DocumentServiceImpl implements DocumentService {
         }
         document.setFilename(filename);
     }
-
 
     private String detectByRegex(String content) {
         String lower = content.toLowerCase();

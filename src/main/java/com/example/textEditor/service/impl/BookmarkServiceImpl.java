@@ -23,17 +23,6 @@ public class BookmarkServiceImpl implements BookmarkService {
     }
 
     @Override
-    public Bookmark getById(int id) {
-        return bookmarkRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Bookmark not found"));
-    }
-
-    @Override
-    public List<Bookmark> getByDocument(Document document) {
-        return bookmarkRepository.findByDocument(document);
-    }
-
-    @Override
     public Bookmark update(Bookmark bookmark) {
         return bookmarkRepository.save(bookmark);
     }
@@ -42,4 +31,5 @@ public class BookmarkServiceImpl implements BookmarkService {
     public void delete(int id) {
         bookmarkRepository.deleteById(id);
     }
+
 }

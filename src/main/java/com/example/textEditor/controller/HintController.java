@@ -30,8 +30,9 @@ public class HintController {
     public static class HintsResponse {
         private List<String> hints;
         public HintsResponse(List<String> hints) { this.hints = hints; }
-        public List<String> getHints() { return hints; }
     }
 }
+
+
 
 

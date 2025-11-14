@@ -7,8 +7,6 @@ import java.util.List;
 
 public interface BookmarkService {
     Bookmark create(Bookmark bookmark);
-    Bookmark getById(int id);
-    List<Bookmark> getByDocument(Document document);
     Bookmark update(Bookmark bookmark);
     void delete(int id);
 }

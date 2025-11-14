@@ -32,7 +32,6 @@ public class DocumentController {
             Command command = new SaveDocumentCommand(documentService, saved);
             invoker.executeCommand(command);
 
-            // 🧩 Flyweight — кількість унікальних символів
             int uniqueCount = documentService.getFlyweightCount();
 
             Map<String, Object> response = new HashMap<>();
@@ -118,7 +117,6 @@ public class DocumentController {
         }
     }
 
-    // 🧩 Окремий ендпоінт для отримання статистики Flyweight
     @GetMapping("/flyweight/stats")
     public ResponseEntity<Map<String, Object>> getFlyweightStats() {
         Map<String, Object> stats = new HashMap<>();

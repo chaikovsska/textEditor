@@ -27,17 +27,6 @@ public class BookmarkController {
         return bookmarkService.create(bookmark);
     }
 
-    @GetMapping("/{id}")
-    public Bookmark getById(@PathVariable int id) {
-        return bookmarkService.getById(id);
-    }
-
-    @GetMapping("/by-document/{documentId}")
-    public List<Bookmark> getByDocument(@PathVariable int documentId) {
-        Document doc = documentService.getById(documentId);
-        return bookmarkService.getByDocument(doc);
-    }
-
     @PutMapping("/{id}")
     public Bookmark update(@PathVariable int id, @RequestBody Bookmark bookmark) {
         bookmark.setId(id);
@@ -51,3 +40,4 @@ public class BookmarkController {
         bookmarkService.delete(id);
     }
 }
+
